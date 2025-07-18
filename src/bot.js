@@ -50,8 +50,16 @@ client.on('ready', () => console.log('✅ Cliente WhatsApp listo'));
 client.on('auth_failure', () => console.log('❌ Error de autenticación'));
 
 client.on('message', async msg => {
+  const chat = await msg.getChat();
+  const isGroup = chat.isGroup;
   const text = msg.body.trim().toLowerCase();
   let m;
+
+  // En grupos: responde solo si lo mencionan o si es comando
+  if (isGroup && !msg.mentionedIds.includes(client.info.wid._serialized) && !text.startsWith('@')) {
+    return; // Ignora mensajes grupales irrelevantes
+  }
+
 
   if (text.startsWith('@beneficios')) {
     let options = 'Selecciona una opción (responde con el número):\n\n';
