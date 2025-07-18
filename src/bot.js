@@ -56,9 +56,9 @@ client.on('message', async msg => {
   let m;
 
   // En grupos: responde solo si lo mencionan o si es comando
-  if (isGroup && !msg.mentionedIds.includes(client.info.wid._serialized) && !text.startsWith('@')) {
-    return; // Ignora mensajes grupales irrelevantes
-  }
+  if (isGroup && !text.startsWith('@')) {
+    return;
+}
 
 
   if (text.startsWith('@beneficios')) {
