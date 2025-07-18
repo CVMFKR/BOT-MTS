@@ -1,12 +1,9 @@
-require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
-const puppeteer = require('puppeteer');
+require('dotenv').config();
 const benefits = require('../data/benefitsData');
 
-// Configuración de cotizadores
-const baseUrl = 'https://vendor.tu7.cl/account';
 const cotizadoresInfo = {
   1: { user: 'cam.reyesmora@gmail.com', password: 'cotizador1' },
   2: { user: 'naranjo.paula.ps@gmail.com', password: 'cotizador2' },
@@ -16,44 +13,30 @@ const bicevida = { user: 'fernanda.lange', password: 'Bice.2020' };
 const slots = { 1: false, 2: false, 3: false };
 const waitingForBenefitNumber = new Map();
 
-// Servidor Express
+const baseUrl = 'https://vendor.tu7.cl/account';
+
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot corriendo!'));
+app.get('/', (req, res) => res.send('Bot en funcionamiento!'));
 app.listen(port, () => console.log(`✅ Servidor en puerto ${port}`));
 
-// Cliente WhatsApp
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process'
-    ]
-  }
+  authStrategy: new LocalAuth()
 });
-
 
 client.on('qr', qr => {
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
   console.log('🔗 Escanea este QR desde tu navegador:');
-  console.log(qrImageUrl);
+  console.log(qrUrl);
 });
 
-client.on('ready', () => console.log('✅ Cliente listo'));
+client.on('ready', () => console.log('✅ Cliente WhatsApp listo'));
 client.on('auth_failure', () => console.log('❌ Error de autenticación'));
 
 client.on('message', async msg => {
   const text = msg.body.trim().toLowerCase();
   let m;
 
-  // @beneficios
   if (text.startsWith('@beneficios')) {
     let options = 'Selecciona una opción (responde con el número):\n\n';
     benefits.forEach((b, i) => options += `${i}. ${b.title}\n`);
@@ -62,7 +45,6 @@ client.on('message', async msg => {
     return;
   }
 
-  // Respuesta a beneficios
   if (!isNaN(text) && waitingForBenefitNumber.get(msg.from)) {
     waitingForBenefitNumber.delete(msg.from);
     const idx = parseInt(text, 10);
@@ -75,34 +57,28 @@ client.on('message', async msg => {
     return;
   }
 
-  // @cotizador1|2|3
   if ((m = text.match(/^@cotizador([123])$/))) {
     const n = +m[1];
     if (!slots[n]) {
-        slots[n] = true;
-        let reply = `🌐 *Acceso a la plataforma:* https://www.vendor.tu7.cl/account\n\n`;
-        reply += `*Cotizador asignado:* ${n} ✅\n`;
-        reply += `• Usuario: ${cotizadoresInfo[n].user}\n`;
-        reply += `• Contraseña: ${cotizadoresInfo[n].password}\n\n`;
-
-        reply += `*Estado actual de los cotizadores:*\n`;
-        [1, 2, 3].forEach(i => {
-            reply += `${slots[i] ? '❌ Ocupado' : '✅ Disponible'} → Cotizador ${i}\n`;
-        });
-
-        reply += `\n*BICEVIDA (siempre disponible):*\n`;
-        reply += `• Usuario: ${bicevida.user}\n`;
-        reply += `• Contraseña: ${bicevida.password}`;
-
-        await client.sendMessage(msg.from, reply);
+      slots[n] = true;
+      let reply = `🌐 *Acceso a la plataforma:* ${baseUrl}\n\n`;
+      reply += `*Cotizador asignado:* ${n} ✅\n`;
+      reply += `• Usuario: ${cotizadoresInfo[n].user}\n`;
+      reply += `• Contraseña: ${cotizadoresInfo[n].password}\n\n`;
+      reply += `*Estado actual de los cotizadores:*\n`;
+      [1, 2, 3].forEach(i => {
+        reply += `${slots[i] ? '❌ Ocupado' : '✅ Disponible'} → Cotizador ${i}\n`;
+      });
+      reply += `\n*BICEVIDA (siempre disponible):*\n`;
+      reply += `• Usuario: ${bicevida.user}\n`;
+      reply += `• Contraseña: ${bicevida.password}`;
+      await client.sendMessage(msg.from, reply);
     } else {
-        await client.sendMessage(msg.from, `❌ El cotizador ${n} ya está ocupado.`);
+      await client.sendMessage(msg.from, `❌ El cotizador ${n} ya está ocupado.`);
     }
     return;
-}
+  }
 
-
-  // @cotizadorXoff
   if ((m = text.match(/^@cotizador([123])off$/))) {
     const n = +m[1];
     if (slots[n]) {
