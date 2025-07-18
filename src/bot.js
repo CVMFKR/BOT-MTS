@@ -13,7 +13,6 @@ const cotizadoresInfo = {
 };
 const bicevida = { user: 'fernanda.lange', password: 'Bice.2020' };
 const slots = { 1: false, 2: false, 3: false };
-const waitingForBenefitNumber = new Map();
 
 // Servidor Express para mantener vivo en Railway
 const app = express();
@@ -55,34 +54,23 @@ client.on('message', async msg => {
   const text = msg.body.trim().toLowerCase();
   let m;
 
-  // En grupos: responde solo si lo mencionan o si es comando
-  if (isGroup && !text.startsWith('@')) {
-    return;
-}
-
+  // En grupos: responde solo si comienza con @
+  if (isGroup && !text.startsWith('@')) return;
 
   if (text.startsWith('@beneficios')) {
     let options = 'Selecciona una opción (responde con el número):\n\n';
     benefits.forEach((b, i) => options += `${i}. ${b.title}\n`);
     await client.sendMessage(msg.from, options);
-    waitingForBenefitNumber.set(isGroup ? msg.author : msg.from, true);
     return;
   }
 
-  const key = isGroup ? msg.author : msg.from;
-
-if (!isNaN(text) && waitingForBenefitNumber.get(key)) {
-  waitingForBenefitNumber.delete(key);
-  const idx = parseInt(text, 10);
-  const b = benefits?.[idx];
-  if (!b) {
-    await client.sendMessage(msg.from, `❌ Opción inválida. Escribe un número entre 0 y ${benefits.length - 1}.`);
-  } else {
+  // Escucha cualquier número válido sin importar quién lo escribió
+  if (!isNaN(text) && benefits[parseInt(text, 10)]) {
+    const idx = parseInt(text, 10);
+    const b = benefits[idx];
     await client.sendMessage(msg.from, `*${b.title}*\n\n${b.content}\n\n🔗 Más info: ${b.link}`);
+    return;
   }
-  return;
-}
-
 
   if ((m = text.match(/^@cotizador([123])$/))) {
     const n = +m[1];
