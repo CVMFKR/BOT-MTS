@@ -1,8 +1,10 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const express = require('express');
 require('dotenv').config();
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const puppeteer = require('puppeteer');
+const express = require('express');
 const benefits = require('../data/benefitsData');
+
+const baseUrl = 'https://vendor.tu7.cl/account';
 
 const cotizadoresInfo = {
   1: { user: 'cam.reyesmora@gmail.com', password: 'cotizador1' },
@@ -13,17 +15,31 @@ const bicevida = { user: 'fernanda.lange', password: 'Bice.2020' };
 const slots = { 1: false, 2: false, 3: false };
 const waitingForBenefitNumber = new Map();
 
-const baseUrl = 'https://vendor.tu7.cl/account';
-
+// Servidor Express para mantener vivo en Railway
 const app = express();
 const port = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot en funcionamiento!'));
+app.get('/', (req, res) => res.send('🤖 Bot WhatsApp MTS en funcionamiento'));
 app.listen(port, () => console.log(`✅ Servidor en puerto ${port}`));
 
+// Cliente WhatsApp
 const client = new Client({
-  authStrategy: new LocalAuth()
+  authStrategy: new LocalAuth(),
+  puppeteer: {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process'
+    ],
+    executablePath: puppeteer.executablePath()
+  }
 });
 
+// QR como URL
 client.on('qr', qr => {
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
   console.log('🔗 Escanea este QR desde tu navegador:');
@@ -50,7 +66,7 @@ client.on('message', async msg => {
     const idx = parseInt(text, 10);
     const b = benefits?.[idx];
     if (!b) {
-      await client.sendMessage(msg.from, `❌ Número inválido. Escribe un número entre 0 y ${benefits.length - 1}.`);
+      await client.sendMessage(msg.from, `❌ Opción inválida. Escribe un número entre 0 y ${benefits.length - 1}.`);
     } else {
       await client.sendMessage(msg.from, `*${b.title}*\n\n${b.content}\n\n🔗 Más info: ${b.link}`);
     }
@@ -85,7 +101,7 @@ client.on('message', async msg => {
       slots[n] = false;
       await client.sendMessage(msg.from, `✅ Cotizador ${n} liberado.`);
     } else {
-      await client.sendMessage(msg.from, `⚠️ Cotizador ${n} ya estaba libre.`);
+      await client.sendMessage(msg.from, `⚠️ El cotizador ${n} ya estaba libre.`);
     }
     return;
   }
