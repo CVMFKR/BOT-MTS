@@ -41,7 +41,9 @@ const client = new Client({
 
 
 client.on('qr', qr => {
-  qrcode.generate(qr, { small: true });
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+  console.log('🔗 Escanea este QR desde tu navegador:');
+  console.log(qrImageUrl);
 });
 
 client.on('ready', () => console.log('✅ Cliente listo'));
