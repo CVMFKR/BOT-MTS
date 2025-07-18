@@ -65,21 +65,24 @@ client.on('message', async msg => {
     let options = 'Selecciona una opción (responde con el número):\n\n';
     benefits.forEach((b, i) => options += `${i}. ${b.title}\n`);
     await client.sendMessage(msg.from, options);
-    waitingForBenefitNumber.set(msg.from, true);
+    waitingForBenefitNumber.set(isGroup ? msg.author : msg.from, true);
     return;
   }
 
-  if (!isNaN(text) && waitingForBenefitNumber.get(msg.from)) {
-    waitingForBenefitNumber.delete(msg.from);
-    const idx = parseInt(text, 10);
-    const b = benefits?.[idx];
-    if (!b) {
-      await client.sendMessage(msg.from, `❌ Opción inválida. Escribe un número entre 0 y ${benefits.length - 1}.`);
-    } else {
-      await client.sendMessage(msg.from, `*${b.title}*\n\n${b.content}\n\n🔗 Más info: ${b.link}`);
-    }
-    return;
+  const key = isGroup ? msg.author : msg.from;
+
+if (!isNaN(text) && waitingForBenefitNumber.get(key)) {
+  waitingForBenefitNumber.delete(key);
+  const idx = parseInt(text, 10);
+  const b = benefits?.[idx];
+  if (!b) {
+    await client.sendMessage(msg.from, `❌ Opción inválida. Escribe un número entre 0 y ${benefits.length - 1}.`);
+  } else {
+    await client.sendMessage(msg.from, `*${b.title}*\n\n${b.content}\n\n🔗 Más info: ${b.link}`);
   }
+  return;
+}
+
 
   if ((m = text.match(/^@cotizador([123])$/))) {
     const n = +m[1];
